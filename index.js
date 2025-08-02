@@ -178,8 +178,8 @@ async function telegramBotSend() {
     return
   }
 
-  // Format message for Telegram (using Markdown formatting)
-  let telegramMsg = "🎮 *HoYoLAB Check-in Report*\n\n"
+  // Format message for Telegram (using simple HTML formatting to avoid MarkdownV2 issues)
+  let telegramMsg = "🎮 <b>HoYoLAB Check-in Report</b>\n\n"
   
   const formattedMessages = messages.map(msg => {
     const typeEmoji = {
@@ -189,9 +189,11 @@ async function telegramBotSend() {
     }
     const emoji = typeEmoji[msg.type] || '📝'
     
-    // Escape special Markdown characters
+    // Escape HTML characters only
     const escapedString = msg.string
-      .replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
     
     return `${emoji} ${escapedString}`
   })
@@ -208,7 +210,7 @@ async function telegramBotSend() {
     body: JSON.stringify({
       chat_id: telegramChatId,
       text: telegramMsg,
-      parse_mode: 'MarkdownV2'
+      parse_mode: 'HTML'
     })
   })
 
