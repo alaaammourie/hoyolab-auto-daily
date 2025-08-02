@@ -12,6 +12,7 @@ Repository version:
 - [Usage](#usage)
 - [Multiple Accounts](#multiple-accounts)
 - [Discord Webhook](#discord-webhook)
+- [Telegram Bot](#telegram-bot)
 - [FAQ](#faq)
   - [Is this safe?](#is-this-safe)
   - [How to update my (fork) repository version?](#how-to-update-my-fork-repository-version)
@@ -138,17 +139,134 @@ You may use Discord webhook to send notifications to your channel!
    </details>
 
 4. <details>
-   <summary>Create a new repository <em>variable</em> named <code>DISCORD_WEBHOOK</code> with value of the webhook URL</summary>
+   <summary>Create a new repository <em>secret</em> named <code>DISCORD_WEBHOOK</code> with value of the webhook URL</summary>
    <img src="https://github.com/sglkc/hoyolab-auto-daily/assets/31957516/15b029ff-906d-472c-b356-ae9efed4477b" />
    </details>
 
 5. <details>
-   <summary>(Optional) If you want to be tagged on check in, add `DISCORD_USER` variable with your Discord ID.</summary>
+   <summary>(Optional) If you want to be tagged on check in, add `DISCORD_USER` secret with your Discord ID.</summary>
    <img src="https://github.com/user-attachments/assets/995a4b18-4c22-4dcd-9a2e-90fac74079c1" />
    <img src="https://github.com/user-attachments/assets/52dff051-abb4-4cc0-b834-685d49a06731" />
    </details>
 
 6. You may trigger the check in manually and see if the messages got sent
+
+## Telegram Bot
+
+🤖 Get beautiful formatted notifications on Telegram! Perfect for mobile notifications.
+
+### Step 1: Create a Telegram Bot
+
+1. <details>
+   <summary>Open Telegram and search for <code>@BotFather</code></summary>
+   Start a chat with BotFather by clicking on it or searching for @BotFather in Telegram.
+   </details>
+
+2. <details>
+   <summary>Create your bot</summary>
+   Send the following commands:
+   
+   ```
+   /start
+   /newbot
+   ```
+   
+   - Choose a name for your bot (e.g., "HoYoLAB Check-in Bot")
+   - Choose a username ending with "bot" (e.g., "hoyolab_checkin_bot")
+   - Save the bot token that BotFather gives you (looks like: `123456789:ABCdefGhIJKlmnoPQRStuvWXYz`)
+   </details>
+
+### Step 2: Get Your Chat ID
+
+1. <details>
+   <summary>Start a chat with your bot</summary>
+   Search for your bot's username in Telegram and send any message (e.g., "Hello").
+   </details>
+
+2. <details>
+   <summary>Get your Chat ID</summary>
+   Open this URL in your browser (replace YOUR_BOT_TOKEN with your actual token):
+   
+   ```
+   https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getUpdates
+   ```
+   
+   Look for `"chat":{"id":123456789` in the response. The number is your Chat ID.
+   
+   **Alternative:** Search for `@userinfobot` in Telegram, send `/start`, and it will show your Chat ID.
+   </details>
+
+### Step 3: Add Telegram Secrets
+
+1. <details>
+   <summary>Go to Settings > Secrets and variables > Actions</summary>
+   In your GitHub repository, navigate to the secrets section.
+   </details>
+
+2. <details>
+   <summary>Add TELEGRAM_BOT_TOKEN secret</summary>
+   
+   - Click "New repository secret"
+   - Name: `TELEGRAM_BOT_TOKEN`
+   - Value: Your bot token from BotFather (e.g., `123456789:ABCdefGhIJKlmnoPQRStuvWXYz`)
+   </details>
+
+3. <details>
+   <summary>Add TELEGRAM_CHAT_ID secret</summary>
+   
+   - Click "New repository secret"
+   - Name: `TELEGRAM_CHAT_ID`  
+   - Value: Your Chat ID (e.g., `123456789`)
+   </details>
+
+### Step 4: Test Your Setup
+
+1. <details>
+   <summary>Run a manual test</summary>
+   Go to Actions > Daily check in > Run workflow to test if Telegram notifications work.
+   </details>
+
+### 📱 What You'll Receive
+
+Your Telegram bot will send beautifully formatted messages like:
+
+```
+🎮 HoYoLAB Auto Check-in Report
+📅 Aug 2, 2025, 06:00 AM (UTC+8)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👤 Account 1
+┌─────────────────────────┐
+│ ✅ ZZZ: Already checked in for today
+│ ✅ GI: Successfully checked in!
+│ ✅ HSR: Already checked in for today
+└─────────────────────────┘
+
+👤 Account 2  
+┌─────────────────────────┐
+│ ✅ ZZZ: Successfully checked in!
+│ ❌ GI: Error not logged in
+│ ✅ HSR: Already checked in for today
+└─────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📊 Summary:
+✅ Success: 5 | ❌ Errors: 1
+👥 Total Accounts: 2
+
+🤖 Automated by GitHub Actions
+```
+
+### 🔧 Features
+
+- **📱 Mobile-friendly:** Perfectly formatted for mobile viewing
+- **👥 Multi-account support:** Clear separation between accounts
+- **📊 Summary statistics:** Quick overview of successes and failures
+- **🕐 Timestamp:** Shows when the check-in ran (UTC+8)
+- **🎨 Visual formatting:** Uses emojis and borders for easy reading
+- **⚡ Real-time:** Instant notifications when check-ins complete
+
+**Note:** You can use both Discord and Telegram notifications together, or just one of them!
 
 ## FAQ
 
