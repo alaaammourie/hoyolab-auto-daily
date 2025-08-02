@@ -178,27 +178,107 @@ async function telegramBotSend() {
     return
   }
 
-  // Format message for Telegram (using simple HTML formatting to avoid MarkdownV2 issues)
-  let telegramMsg = "🎮 <b>HoYoLAB Check-in Report</b>\n\n"
-  
-  const formattedMessages = messages.map(msg => {
-    const typeEmoji = {
-      'info': '✅',
-      'error': '❌',
-      'warn': '⚠️'
-    }
-    const emoji = typeEmoji[msg.type] || '📝'
-    
-    // Escape HTML characters only
-    const escapedString = msg.string
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-    
-    return `${emoji} ${escapedString}`
+  // Create a more formatted message for Telegram
+  const currentDate = new Date().toLocaleString('en-US', {
+    timeZone: 'Asia/Shanghai',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
   })
-  
-  telegramMsg += formattedMessages.join('\n')
+
+  let telegramMsg = `🎮 <b>HoYoLAB Auto Check-in Report</b>\n`
+  telegramMsg += `📅 <i>${currentDate} (UTC+8)</i>\n`
+  telegramMsg += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`
+
+  // Group messages by account
+  const accountMessages = {}
+  let currentAccount = null
+  let accountCounter = 0
+
+  messages.forEach(msg => {
+    // Check if this is an account separator message
+    if (msg.string.includes('CHECKING IN FOR ACCOUNT')) {
+      const accountMatch = msg.string.match(/ACCOUNT (\d+)/)
+      if (accountMatch) {
+        currentAccount = `Account ${accountMatch[1]}`
+        accountCounter++
+        if (!accountMessages[currentAccount]) {
+          accountMessages[currentAccount] = []
+        }
+      }
+    } else if (currentAccount) {
+      // Add game-specific messages to current account
+      accountMessages[currentAccount].push(msg)
+    } else {
+      // Handle messages that don't belong to any account
+      if (!accountMessages['General']) {
+        accountMessages['General'] = []
+      }
+      accountMessages['General'].push(msg)
+    }
+  })
+
+  // Format messages for each account
+  Object.keys(accountMessages).forEach((account, index) => {
+    if (accountMessages[account].length === 0) return
+
+    // Account header
+    if (account !== 'General') {
+      telegramMsg += `👤 <b>${account}</b>\n`
+      telegramMsg += `┌─────────────────────────┐\n`
+    }
+
+    // Game status messages
+    accountMessages[account].forEach(msg => {
+      const typeEmoji = {
+        'info': '✅',
+        'error': '❌',
+        'warn': '⚠️'
+      }
+      const emoji = typeEmoji[msg.type] || '📝'
+      
+      // Escape HTML characters
+      const escapedString = msg.string
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+
+      // Format game messages nicely
+      if (escapedString.includes(':')) {
+        const [game, status] = escapedString.split(':', 2)
+        telegramMsg += `│ ${emoji} <b>${game.trim()}</b>: ${status.trim()}\n`
+      } else {
+        telegramMsg += `│ ${emoji} ${escapedString}\n`
+      }
+    })
+
+    if (account !== 'General') {
+      telegramMsg += `└─────────────────────────┘\n`
+      
+      // Add separator between accounts (but not after the last one)
+      if (index < Object.keys(accountMessages).length - 1) {
+        telegramMsg += `\n`
+      }
+    }
+  })
+
+  // Add summary
+  const totalSuccess = messages.filter(msg => msg.type === 'info').length
+  const totalErrors = messages.filter(msg => msg.type === 'error').length
+  const totalWarnings = messages.filter(msg => msg.type === 'warn').length
+
+  telegramMsg += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`
+  telegramMsg += `📊 <b>Summary:</b>\n`
+  telegramMsg += `✅ Success: ${totalSuccess} | ❌ Errors: ${totalErrors}`
+  if (totalWarnings > 0) {
+    telegramMsg += ` | ⚠️ Warnings: ${totalWarnings}`
+  }
+  telegramMsg += `\n👥 Total Accounts: ${accountCounter}`
+
+  // Add footer
+  telegramMsg += `\n\n🤖 <i>Automated by GitHub Actions</i>`
 
   const telegramUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`
   
