@@ -4,6 +4,8 @@ const cookies = process.env.COOKIE.split('\n').map(s => s.trim())
 const games = process.env.GAMES.split('\n').map(s => s.trim())
 const discordWebhook = process.env.DISCORD_WEBHOOK
 const discordUser = process.env.DISCORD_USER
+const telegramBotToken = process.env.TELEGRAM_BOT_TOKEN
+const telegramChatId = process.env.TELEGRAM_CHAT_ID
 const msgDelimiter = ':'
 const messages = []
 const endpoints = {
@@ -167,6 +169,60 @@ async function discordWebhookSend() {
   log('error', 'Error sending message to Discord webhook, please check URL and permissions')
 }
 
+// Telegram bot function
+async function telegramBotSend() {
+  log('debug', '\n----- TELEGRAM BOT -----')
+
+  if (!telegramBotToken || !telegramChatId) {
+    log('error', 'TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID must be set to use Telegram notifications')
+    return
+  }
+
+  // Format message for Telegram (using Markdown formatting)
+  let telegramMsg = "🎮 *HoYoLAB Check-in Report*\n\n"
+  
+  const formattedMessages = messages.map(msg => {
+    const typeEmoji = {
+      'info': '✅',
+      'error': '❌',
+      'warn': '⚠️'
+    }
+    const emoji = typeEmoji[msg.type] || '📝'
+    
+    // Escape special Markdown characters
+    const escapedString = msg.string
+      .replace(/[_*[\]()~`>#+\-=|{}.!]/g, '\\$&')
+    
+    return `${emoji} ${escapedString}`
+  })
+  
+  telegramMsg += formattedMessages.join('\n')
+
+  const telegramUrl = `https://api.telegram.org/bot${telegramBotToken}/sendMessage`
+  
+  const res = await fetch(telegramUrl, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      chat_id: telegramChatId,
+      text: telegramMsg,
+      parse_mode: 'MarkdownV2'
+    })
+  })
+
+  const responseJson = await res.json()
+
+  if (responseJson.ok) {
+    log('info', 'Successfully sent message to Telegram!')
+    return
+  }
+
+  log('error', `Error sending message to Telegram: ${responseJson.description || 'Unknown error'}`)
+  log('debug', 'Telegram API Response:', responseJson)
+}
+
 if (!cookies || !cookies.length) {
   throw new Error('COOKIE environment variable not set!')
 }
@@ -180,8 +236,13 @@ for (const index in cookies) {
   await run(cookies[index], games[index])
 }
 
+// Send notifications
 if (discordWebhook && URL.canParse(discordWebhook)) {
   await discordWebhookSend()
+}
+
+if (telegramBotToken && telegramChatId) {
+  await telegramBotSend()
 }
 
 if (hasErrors) {

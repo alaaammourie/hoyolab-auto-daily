@@ -2,7 +2,7 @@ name: Latest version
 
 on:
   schedule:
-    - cron: "0 18 * * *" # scheduled at 06:00 (UTC+8) everyday
+    - cron: "0 18 * * *" # scheduled at 02:00 (UTC+8) everyday
   workflow_dispatch:
 
 jobs:
@@ -20,6 +20,8 @@ jobs:
       - name: Compare versions
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
           LOCAL_VERSION=$(jq -r .version package.json)
           REMOTE_VERSION=$(jq -r .version remote-package.json)
@@ -29,14 +31,24 @@ jobs:
           if [ "$(printf '%s\n' "$REMOTE_VERSION" "$LOCAL_VERSION" | sort -V | head -n1)" != "$REMOTE_VERSION" ]; then
             echo "Repository version is outdated. Do sync your fork!"
 
+            # Send Discord notification
             if [ ! -z "$DISCORD_WEBHOOK" ]; then
               curl -H "Content-Type: application/json" \
                    -d '{"content": "(INFO) New version released. Your repository is outdated."}' \
                    $DISCORD_WEBHOOK
             fi
 
+            # Send Telegram notification
+            if [ ! -z "$TELEGRAM_BOT_TOKEN" ] && [ ! -z "$TELEGRAM_CHAT_ID" ]; then
+              curl -X POST \
+                   -H "Content-Type: application/json" \
+                   -d "{\"chat_id\": \"$TELEGRAM_CHAT_ID\", \"text\": \"📦 *Version Update Available*\n\n⚠️ New version released\\. Your repository is outdated\\.\n\n📋 Local: \`$LOCAL_VERSION\`\n📋 Remote: \`$REMOTE_VERSION\`\", \"parse_mode\": \"MarkdownV2\"}" \
+                   "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage"
+            fi
+
             exit 1
           fi
+          
   workflow-keepalive:
     if: github.event_name == 'schedule'
     runs-on: ubuntu-latest
